@@ -1,0 +1,5 @@
+pm_scan:
+    resource: "@PMScanBundle/Controller/"
+    type:     annotation
+    prefix:   /
+
