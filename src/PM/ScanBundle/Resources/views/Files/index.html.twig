@@ -1,0 +1,64 @@
+{% extends "::base.html.twig" %}
+
+{% block title %}Files{% endblock %}
+
+{% block body %}
+    <br/>
+    <ol class="breadcrumb">
+        {% if parent %}
+            <li><a href="{{ path("pm_scan_files_index") }}">Root</a></li>
+            {% for folder in parent.parents|reverse %}
+                {% if loop.last %}
+                    <li class="active">{{ folder.name }}</li>
+                {% else %}
+                    <li><a href="{{ path("pm_scan_files_index_1", {"folder": folder.id}) }}">{{ folder.name }}</a></li>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <li class="active">Root</li>
+        {% endif %}
+    </ol>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th width="30">
+                {% if parent %}
+                    {% if parent.parent %}
+                        <a href="{{ path("pm_scan_files_index_1", {"folder": parent.parent.id}) }}"><i class="fa fa-level-up"></i></a>
+                    {% else %}
+                        <a href="{{ path("pm_scan_files_index") }}"><i class="fa fa-level-up"></i></a>
+                    {% endif %}
+                {% endif %}
+            </th>
+            <th>Name</th>
+            <th>Type</th>
+            <th class="text-right">Modified</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for folder in folders %}
+            <tr{% if constant("TYPE_IGNORE",folder) == folder.type %} class="text-muted"{% endif %}>
+                <td><i class="fa fa-folder"></i></td>
+                <td>
+                    {% if constant("TYPE_IGNORE",folder) == folder.type %}
+                        {{ folder.name }}
+                    {% else %}
+                        <a href="{{ path("pm_scan_files_index_1", {"folder":folder.id}) }}">{{ folder.name }}</a>
+                    {% endif %}
+                </td>
+                <td>{{ folder.typeText }}</td>
+                <td class="text-right">{{ folder.modified|date("Y-m-d H:i") }}</td>
+            </tr>
+        {% endfor %}
+        {% for file in files %}
+            <tr>
+                <td><i class="fa fa-file-o"></i></td>
+                <td>{{ file.name }}</td>
+                <td>{{ file.folder.typeText }}</td>
+                <td class="text-right">{{ file.modified|date("Y-m-d H:i") }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock body %}

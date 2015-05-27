@@ -13,12 +13,30 @@ There is a solution for the surround sound problem: Plex App Player "Force Direc
  
 To transcode all existing an new media to the usable encoding is *Part 1* of this software:
 
-* Converting Videos (Movies/Series) to h264/AC3
+* Converting videos (Movies/Series) to h264/AC3
 * Make sure its a MP4 container
 
 At the moment i am working at this step. My next steps will be:
 
 * Building a Amazon Fire TV App (based on the WebApp SDK), using the Plex Media Server API to browse and watch all media
-* Extend the movie and series informations, e.g. showing new episodes or movie sequels to existing media
+* Extend the movie and series information, e.g. showing new episodes or movie sequels to existing media
 
 The software is written in PHP and using Symfony2. Using a sqlite and the builtin server, the installation will be quick and easy.
+
+## What's working?
+
+**26.05.2015**
+
+* Init folders: set type of content
+* Scan folders: write all existing folder paths to database
+
+**27.05.2015**
+
+* Scan files: write all existing file paths to database
+* Transcode files: analyzing all streams of video file
+
+**Soon**
+
+* Transcode files: stream mapping
+* Transcode files: execute
+* Cleanup: move originals in backup store, delete after 30 days

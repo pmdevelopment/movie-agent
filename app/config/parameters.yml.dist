@@ -14,3 +14,13 @@ parameters:
     secret:            ThisTokenIsNotSoSecretChangeIt
 
     dir_media: /media/sjoder/3tb
+
+    transcode_threads: 2
+
+    transcode_video_codec: "h264"
+
+    transcode_video_audio_codec: "ac3"
+    transcode_video_audio_language: "ger"
+
+    transcode_video_container: "mp4"
+

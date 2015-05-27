@@ -10,6 +10,7 @@ namespace PM\ScanBundle\Command;
 
 use DateTime;
 use DirectoryIterator;
+use PM\ScanBundle\Entity\File;
 use PM\ScanBundle\Entity\Folder;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,13 +31,7 @@ class FilesCommand extends ContainerAwareCommand
     {
         $this
             ->setName('pm:scan:files')
-            ->setDescription('Scan Filesystem')
-            ->addOption(
-                're-index',
-                null,
-                InputOption::VALUE_NONE,
-                'If set, the last modified date will be ignored'
-            );
+            ->setDescription('Scan Filesystem');
 
     }
 
@@ -48,9 +43,14 @@ class FilesCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $start = microtime(true);
+
         $folders = $this->getDoctrine()->getRepository("PMScanBundle:Folder")->findBy(array("parent" => null));
 
-        $this->scanFolders($folders, $output, $input->getOption("re-index"));
+        $this->scanFolders($folders, $output);
+
+        $end = microtime(true);
+        $output->writeln(sprintf("Scanned within %s seconds", round($end - $start, 2)));
     }
 
     /**
@@ -58,9 +58,8 @@ class FilesCommand extends ContainerAwareCommand
      *
      * @param Folder[]        $folders
      * @param OutputInterface $output
-     * @param bool            $forceReindex
      */
-    private function scanFolders($folders, OutputInterface $output, $forceReindex = false)
+    private function scanFolders($folders, OutputInterface $output)
     {
         foreach ($folders as $folder) {
             $output->writeln(sprintf("Working Folder: <options=bold>%s</options=bold>", $folder->getPath()));
@@ -84,26 +83,21 @@ class FilesCommand extends ContainerAwareCommand
                  */
                 $directory = new DirectoryIterator($folder->getPath());
 
-                if (null === $folder->getModified() || $folder->getModified()->getTimestamp() !== $directory->getMTime() || true === $forceReindex) {
-                    $output->writeln(" !!! Importing !!!");
 
-                    $modified = new DateTime();
-                    $modified->setTimestamp($directory->getMTime());
+                $modified = new DateTime();
+                $modified->setTimestamp($directory->getMTime());
 
-                    $folder->setModified($modified);
+                $folder->setModified($modified);
 
 
-                    $this->import($folder, $directory);
+                $this->import($folder, $directory);
 
-                    $output->writeln(" <info>Done...</info>");
+                $output->writeln(" <info>Done...</info>");
 
-                    $this->getDoctrine()->getManager()->persist($folder);
-                    $this->getDoctrine()->getManager()->flush();
+                $this->getDoctrine()->getManager()->persist($folder);
+                $this->getDoctrine()->getManager()->flush();
 
-                    $this->scanFolders($folder->getChildren(), $output, $forceReindex);
-                }
-
-                $output->writeln(" <info>Nothing to do...</info>");
+                $this->scanFolders($folder->getChildren(), $output);
             }
         }
     }
@@ -117,16 +111,35 @@ class FilesCommand extends ContainerAwareCommand
     private function import(Folder $folder, DirectoryIterator $directory)
     {
         foreach ($directory as $dirContent) {
+            $fullPath = sprintf("%s/%s", $dirContent->getPath(), $dirContent->getFilename());
+
             if (true === $dirContent->isFile()) {
                 /**
                  * File
                  */
+                $children = $this->getDoctrine()->getRepository("PMScanBundle:File")->findOneBy(array('path' => $fullPath));
+                if (null === $children) {
+                    $children = new File();
+                    $children
+                        ->setName($dirContent->getFilename())
+                        ->setPath($fullPath)
+                        ->setFolder($folder)
+                        ->setSize($dirContent->getSize())
+                        ->setExtension($dirContent->getExtension());
+                }
+
+                $modified = new DateTime();
+                $modified->setTimestamp($dirContent->getMTime());
+
+                $children->setModified($modified);
+
+                $this->getDoctrine()->getManager()->persist($children);
+
             } else {
                 /**
                  * Folder
                  */
                 if (true === $dirContent->isDir() && false === $dirContent->isDot() && '.' !== substr($dirContent->getFilename(), 0, 1)) {
-                    $fullPath = sprintf("%s/%s", $dirContent->getPath(), $dirContent->getFilename());
 
                     $children = $this->getDoctrine()->getRepository("PMScanBundle:Folder")->findOneBy(array('path' => $fullPath));
                     if (null === $children) {
@@ -152,8 +165,7 @@ class FilesCommand extends ContainerAwareCommand
      *
      * @return \Doctrine\Bundle\DoctrineBundle\Registry
      */
-    private
-    function getDoctrine()
+    private function getDoctrine()
     {
         return $this->getContainer()->get("doctrine");
     }

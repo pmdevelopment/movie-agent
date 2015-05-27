@@ -8,6 +8,8 @@
 
 namespace PM\ScanBundle\Model;
 
+use PM\ScanBundle\Entity\Folder;
+
 /**
  * Class FolderModel
  *
@@ -41,6 +43,32 @@ class FolderModel
     }
 
     /**
+     * Get Types Audio
+     *
+     * @return array
+     */
+    public static function getTypesAudio()
+    {
+        return array(
+            self::TYPE_AUDIO_BOOK,
+            self::TYPE_AUDIO_MUSIC
+        );
+    }
+
+    /**
+     * Get Types Video
+     *
+     * @return array
+     */
+    public static function getTypesVideo()
+    {
+        return array(
+            self::TYPE_VIDEO_MOVIE,
+            self::TYPE_VIDEO_SERIES
+        );
+    }
+
+    /**
      * Get Type Id
      *
      * @param string $name
@@ -57,4 +85,39 @@ class FolderModel
 
         return self::TYPE_IGNORE;
     }
+
+    /**
+     * Get Type Text
+     *
+     * @return string
+     */
+    public function getTypeText()
+    {
+        if (!$this instanceof Folder) {
+            throw new \LogicException("Not a folder");
+        }
+
+        return self::getTypes()[$this->getType()];
+    }
+
+    /**
+     * Get all Parents
+     *
+     * @return array|Folder[]
+     */
+    public function getParents()
+    {
+        if (!$this instanceof Folder) {
+            throw new \LogicException("Not a folder");
+        }
+
+        $parents = array($this);
+
+        if (null !== $this->getParent()) {
+            $parents = array_merge($parents, $this->getParent()->getParents());
+        }
+
+        return $parents;
+    }
+
 }

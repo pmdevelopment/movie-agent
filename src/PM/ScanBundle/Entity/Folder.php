@@ -68,6 +68,13 @@ class Folder extends FolderModel
     private $children;
 
     /**
+     * @var File[]|Collection
+     *
+     * @ORM\OneToMany(targetEntity="PM\ScanBundle\Entity\File", mappedBy="folder")
+     */
+    private $files;
+
+    /**
      * Constructor
      */
     public function __construct()
@@ -216,6 +223,27 @@ class Folder extends FolderModel
 
         return $this;
     }
+
+    /**
+     * @return Collection|File[]
+     */
+    public function getFiles()
+    {
+        return $this->files;
+    }
+
+    /**
+     * @param Collection|File[] $files
+     *
+     * @return Folder
+     */
+    public function setFiles($files)
+    {
+        $this->files = $files;
+
+        return $this;
+    }
+
 
     /**
      * @return string
