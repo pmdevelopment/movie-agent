@@ -14,7 +14,6 @@ use PM\ScanBundle\Entity\File;
 use PM\ScanBundle\Entity\Folder;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -153,6 +152,10 @@ class FilesCommand extends ContainerAwareCommand
                         $this->getDoctrine()->getManager()->persist($children);
 
                         $folder->getChildren()->add($children);
+                    } else {
+                        /**
+                         * Check if all files exist
+                         */
                     }
 
                 }

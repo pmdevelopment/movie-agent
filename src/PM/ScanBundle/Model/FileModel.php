@@ -55,6 +55,7 @@ class FileModel
     /**
      * Get Path with new extension
      *
+     * @param string $path
      * @param string $extension
      *
      * @return string

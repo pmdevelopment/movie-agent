@@ -130,7 +130,7 @@ class TranscodeService
      * Get Valid Streams
      *
      * @param array       $streams
-     * @param string      $codec
+     * @param string|null $codec
      * @param null|string $language
      *
      * @return array
@@ -142,7 +142,7 @@ class TranscodeService
         foreach ($streams as $streamData) {
             $streamLanguage = $this->getLanguageFromStream($streamData);
 
-            if ($streamData['codec_name'] === $codec && (null === $language || $streamLanguage === $language || null === $streamLanguage)) {
+            if (($streamData['codec_type'] === $codec || $streamData['codec_name'] === $codec) && (null === $language || $streamLanguage === $language || null === $streamLanguage)) {
                 $result[] = $streamData;
             }
         }
@@ -204,10 +204,14 @@ class TranscodeService
         /**
          * Video
          */
-        if (0 === count($this->getValidStreams($streams, $this->getVideoCodec()))) {
+        $videoCodecs = $this->getValidStreams($streams, $this->getVideoCodec());
+        if (0 === count($videoCodecs)) {
             $command[] = sprintf("-c:v %s", $this->getVideoCodecLibrary());
+
+            $videoCodec = $this->getValidStreams($streams, 'video');
         } else {
             $command[] = "-c:v copy";
+            $command[] = sprintf("-map 0:%s", $videoCodecs[0]['index']);
         }
 
         /**
@@ -217,26 +221,38 @@ class TranscodeService
         $audioCodecsCount = count($audioCodecs);
         if (0 === $audioCodecsCount) {
             $command[] = sprintf("-c:a %s", $this->getVideoAudioCodec());
+
+            $audioCodec = $this->getValidStreams($streams, 'audio', $this->getVideoAudioLanguage());
+            $command[] = sprintf("-map 0:%s", $audioCodec[0]['index']);
         } else {
             $command[] = "-c:a copy";
+            $command[] = sprintf("-map 0:%s", $audioCodecs[0]['index']);
         }
-
-        /**
-         * Todo: Mapping!
-         */
 
         if (0 < $this->getThreads()) {
             $command[] = sprintf("-threads %s", $this->getThreads());
         }
 
+        /**
+         * Remove Metadata
+         */
+        $command[] = "-map_metadata -1";
+
+        /**
+         * Set Output file
+         */
         $command[] = File::getPathWithNewExtension($filePath, $this->getVideoContainer());
 
-        dump($command);
+        $command[] = "2>&1";
 
+        $command = implode(" ", $command);
+        $result = shell_exec($command);
 
-        //ffmpeg -i tvp-americandad-s09e16-1080p.mkv -map 0:0 -map 0:1 -c:v copy -c:a copy  s10e16.mp4
-
-        return true;
+        return array(
+            'filePath' => $filePath,
+            'output'   => $result,
+            'command'  => $command
+        );
     }
 
     /**

@@ -33,10 +33,13 @@ The software is written in PHP and using Symfony2. Using a sqlite and the builti
 **27.05.2015**
 
 * Scan files: write all existing file paths to database
+* Scan files: folder and files view to see scan result (/scan/files)
 * Transcode files: analyzing all streams of video file
+
+**30.05.2015**
+
+* Transcode files: works, (pm:scan:transcode). Original files renamed to .backup
 
 **Soon**
 
-* Transcode files: stream mapping
-* Transcode files: execute
 * Cleanup: move originals in backup store, delete after 30 days

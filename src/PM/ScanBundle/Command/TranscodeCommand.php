@@ -10,8 +10,10 @@ namespace PM\ScanBundle\Command;
 
 use PM\ScanBundle\Entity\File;
 use PM\ScanBundle\Entity\Folder;
+use PM\ScanBundle\Entity\Log;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -28,7 +30,14 @@ class TranscodeCommand extends ContainerAwareCommand
     {
         $this
             ->setName('pm:scan:transcode')
-            ->setDescription('Transcode files');
+            ->setDescription('Transcode files')
+            ->addOption(
+                'continue',
+                null,
+                InputOption::VALUE_NONE,
+                'If set, it will search for new file after transcoding'
+            );
+
 
     }
 
@@ -71,6 +80,14 @@ class TranscodeCommand extends ContainerAwareCommand
                     $output->writeln(" <error>Failed</error>");
                 }
             }
+
+
+            /**
+             * Check new files
+             */
+            if (true === $input->getOption('continue')) {
+                $this->execute($input, $output);
+            }
         } else {
             $output->writeln("<info>Nothing to do...</info>");
         }
@@ -99,15 +116,31 @@ class TranscodeCommand extends ContainerAwareCommand
         } else {
             $result = $ffmpeg->transcodeVideo($file->getPath());
 
-            if (true === $result) {
-                /*
-                 * TODO: Save
-                 */
-                $this->setTranscodeStatus($file, File::TRANSCODE_NONE);
-                //$this->setTranscodeStatus($file, File::TRANSCODE_DONE);
-            } else {
-                throw new \Exception("Transcoding failed");
-            }
+            /**
+             * Move to Backup
+             */
+            $fileBackup = File::getPathWithNewExtension($file->getPath(), "backup");
+            rename($file->getPath(), $fileBackup);
+
+            $file
+                ->setPath($fileBackup)
+                ->setName(basename($fileBackup))
+                ->setExtension("backup")
+                ->setTranscodeStatus(File::TRANSCODE_DONE);
+
+            /**
+             * Log
+             */
+            $log = new Log();
+            $log
+                ->setCommand($result['command'])
+                ->setFile($file)
+                ->setResult($result['output'])
+                ->setTime(new \DateTime());
+
+            $this->getDoctrine()->getManager()->persist($file);
+            $this->getDoctrine()->getManager()->persist($log);
+            $this->getDoctrine()->getManager()->flush();
         }
     }
 
