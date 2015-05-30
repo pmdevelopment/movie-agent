@@ -111,10 +111,11 @@ class TranscodeService
      */
     public function getStreams($filePath)
     {
-        $result = shell_exec(sprintf("ffprobe -v quiet -print_format json -show_streams %s", escapeshellcmd($filePath)));
+        $command = sprintf("ffprobe -v quiet -print_format json -show_streams '%s'", $filePath);
+        $result = shell_exec($command);
 
         if (null === $result) {
-            throw new \LogicException("No result");
+            throw new \LogicException(sprintf("No result for %s", $command));
         }
 
         $result = json_decode($result, true);
@@ -142,8 +143,10 @@ class TranscodeService
         foreach ($streams as $streamData) {
             $streamLanguage = $this->getLanguageFromStream($streamData);
 
-            if (($streamData['codec_type'] === $codec || $streamData['codec_name'] === $codec) && (null === $language || $streamLanguage === $language || null === $streamLanguage)) {
-                $result[] = $streamData;
+            if (isset($streamData['codec_name'])) {
+                if (($streamData['codec_type'] === $codec || $streamData['codec_name'] === $codec) && (null === $language || $streamLanguage === $language || null === $streamLanguage)) {
+                    $result[] = $streamData;
+                }
             }
         }
 
@@ -198,7 +201,7 @@ class TranscodeService
 
         $command = array(
             'ffmpeg',
-            sprintf('-i %s', $filePath)
+            sprintf("-i '%s'", $filePath)
         );
 
         /**
@@ -209,6 +212,7 @@ class TranscodeService
             $command[] = sprintf("-c:v %s", $this->getVideoCodecLibrary());
 
             $videoCodec = $this->getValidStreams($streams, 'video');
+            $command[] = sprintf("-map 0:%s", $videoCodec[0]['index']);
         } else {
             $command[] = "-c:v copy";
             $command[] = sprintf("-map 0:%s", $videoCodecs[0]['index']);
@@ -241,7 +245,7 @@ class TranscodeService
         /**
          * Set Output file
          */
-        $command[] = File::getPathWithNewExtension($filePath, $this->getVideoContainer());
+        $command[] = sprintf("'%s'", File::getPathWithNewExtension($filePath, $this->getVideoContainer()));
 
         $command[] = "2>&1";
 

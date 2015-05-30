@@ -53,13 +53,13 @@ class TranscodeCommand extends ContainerAwareCommand
         if (1 === count($files)) {
             $file = $files[0];
 
+            $output->writeln(sprintf("Checking file <option=bold>%s</option=bold>", $file->getPath()));
+
             if (false === $file->isKnownExtension()) {
                 $output->writeln(" <error>Unknown extension</error>");
 
                 $this->setTranscodeStatus($file, File::TRANSCODE_FAILED);
             } else {
-                $output->writeln(sprintf("Checking file <option=bold>%s</option=bold>", $file->getPath()));
-
                 /**
                  * Check if streams have to be converted
                  */
@@ -74,10 +74,12 @@ class TranscodeCommand extends ContainerAwareCommand
                         throw new \LogicException("Unknown Type");
                     }
 
+                    $output->writeln(" <info>Done</info>");
+
                 } catch (\Exception $e) {
                     $this->setTranscodeStatus($file, File::TRANSCODE_FAILED);
 
-                    $output->writeln(" <error>Failed</error>");
+                    $output->writeln(sprintf(" <error>Failed</error>: %s", $e->getMessage()));
                 }
             }
 
