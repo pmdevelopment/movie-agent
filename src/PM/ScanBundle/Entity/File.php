@@ -2,6 +2,8 @@
 
 namespace PM\ScanBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use PM\ScanBundle\Model\FileModel;
 
@@ -70,6 +72,13 @@ class File extends FileModel
      * @ORM\Column(name="extension",type="string",length=30)
      */
     private $extension;
+
+    /**
+     * @var Log[]|Collection
+     *
+     * @ORM\OneToMany(targetEntity="PM\ScanBundle\Entity\Log", mappedBy="file", cascade={"all"})
+     */
+    private $logs;
 
     /**
      * Constructor
@@ -239,6 +248,36 @@ class File extends FileModel
         $this->extension = $extension;
 
         return $this;
+    }
+
+    /**
+     * @return Collection|Log[]
+     */
+    public function getLogs()
+    {
+        return $this->logs;
+    }
+
+    /**
+     * @param Collection|Log[] $logs
+     *
+     * @return File
+     */
+    public function setLogs($logs)
+    {
+        $this->logs = $logs;
+
+        return $this;
+    }
+
+    /**
+     * On Clone
+     */
+    public function __clone()
+    {
+        $this->id = null;
+
+        $this->setLogs(new ArrayCollection());
     }
 
 

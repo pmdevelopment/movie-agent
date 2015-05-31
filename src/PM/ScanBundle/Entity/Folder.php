@@ -70,7 +70,7 @@ class Folder extends FolderModel
     /**
      * @var File[]|Collection
      *
-     * @ORM\OneToMany(targetEntity="PM\ScanBundle\Entity\File", mappedBy="folder")
+     * @ORM\OneToMany(targetEntity="PM\ScanBundle\Entity\File", mappedBy="folder", cascade={"all"})
      */
     private $files;
 

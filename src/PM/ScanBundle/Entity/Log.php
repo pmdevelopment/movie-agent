@@ -45,7 +45,7 @@ class Log
     /**
      * @var File
      *
-     * @ORM\ManyToOne(targetEntity="PM\ScanBundle\Entity\File")
+     * @ORM\ManyToOne(targetEntity="PM\ScanBundle\Entity\File", inversedBy="logs")
      */
     private $file;
 

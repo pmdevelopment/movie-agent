@@ -49,6 +49,17 @@ class TranscodeCommand extends ContainerAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        /**
+         * Check disk space
+         */
+        $dirMedia = $this->getContainer()->getParameter("dir_media");
+        $dirMediaFreeSpace = $this->getContainer()->getParameter("dir_media_minimum_free_space");
+        if ($dirMediaFreeSpace > disk_free_space($dirMedia)) {
+            $output->writeln("<error>Disk space below limit!</error>");
+
+            return;
+        }
+
         $files = $this->getDoctrine()->getRepository("PMScanBundle:File")->findBy(array('transcodeStatus' => File::TRANSCODE_NONE), array("modified" => "asc"), 1);
         if (1 === count($files)) {
             $file = $files[0];
@@ -107,11 +118,12 @@ class TranscodeCommand extends ContainerAwareCommand
     private function transcodeVideo($file)
     {
         $ffmpeg = $this->getContainer()->get("pm_scan.services.transcode_service");
+        $ffprobe = $this->getContainer()->get("pm_scan.services.stream_service");
 
-        $streams = $ffmpeg->getStreams($file->getPath());
+        $streams = $ffprobe->get($file->getPath());
 
-        $videoStreams = $ffmpeg->getValidStreams($streams, $ffmpeg->getVideoCodec());
-        $audioStreams = $ffmpeg->getValidStreams($streams, $ffmpeg->getVideoAudioCodec(), $ffmpeg->getVideoAudioLanguage());
+        $videoStreams = $ffprobe->getValid($streams, $ffmpeg->getVideoCodec());
+        $audioStreams = $ffprobe->getValid($streams, $ffmpeg->getVideoAudioCodec(), $ffmpeg->getVideoAudioLanguage());
 
         if (true === $ffmpeg->isValidVideoContainer($file->getExtension()) && 0 < count($videoStreams) && 0 < count($audioStreams)) {
             $this->setTranscodeStatus($file, File::TRANSCODE_IGNORED);
@@ -124,10 +136,19 @@ class TranscodeCommand extends ContainerAwareCommand
             $fileBackup = File::getPathWithNewExtension($file->getPath(), "backup");
             rename($file->getPath(), $fileBackup);
 
-            $file
+            $backup = clone $file;
+            $backup
                 ->setPath($fileBackup)
                 ->setName(basename($fileBackup))
-                ->setExtension("backup")
+                ->setExtension('backup')
+                ->setTranscodeStatus(File::TRANSCODE_BACKUP)
+                ->setFolder($file->getFolder())
+                ->setModified(new \DateTime());
+
+            $file
+                ->setPath($result['filePath'])
+                ->setName(basename($result['filePath']))
+                ->setExtension($ffmpeg->getVideoContainer())
                 ->setTranscodeStatus(File::TRANSCODE_DONE);
 
             /**
@@ -140,8 +161,10 @@ class TranscodeCommand extends ContainerAwareCommand
                 ->setResult($result['output'])
                 ->setTime(new \DateTime());
 
+            $this->getDoctrine()->getManager()->persist($backup);
             $this->getDoctrine()->getManager()->persist($file);
             $this->getDoctrine()->getManager()->persist($log);
+
             $this->getDoctrine()->getManager()->flush();
         }
     }

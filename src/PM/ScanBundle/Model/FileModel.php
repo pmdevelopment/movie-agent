@@ -21,6 +21,7 @@ class FileModel
     const TRANSCODE_WORKING = 1;
     const TRANSCODE_IGNORED = 2;
     const TRANSCODE_DONE = 3;
+    const TRANSCODE_BACKUP = 8;
     const TRANSCODE_FAILED = 9;
 
     /**

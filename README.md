@@ -40,6 +40,10 @@ The software is written in PHP and using Symfony2. Using a sqlite and the builti
 
 * Transcode files: works, (pm:scan:transcode). Original files renamed to .backup
 
-**Soon**
+**31.05.2015**
 
-* Cleanup: move originals in backup store, delete after 30 days
+* Transcode files: fixes, e.g. cancel when not enough disk space
+* Cleanup files: delete .backup after XX days
+
+**Soon**
+* Cleanup: Remove files no longer found

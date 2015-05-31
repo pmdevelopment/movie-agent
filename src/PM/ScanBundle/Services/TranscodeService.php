@@ -43,16 +43,24 @@ class TranscodeService
      */
     private $videoContainer;
 
+    /**
+     * @var StreamService
+     */
+    private $streamService;
+
 
     /**
-     * @param int    $threads
-     * @param string $videoCodec
-     * @param string $videoAudioCodec
-     * @param string $videoAudioLanguage
-     * @param string $videoContainer
+     * @param StreamService $streamService
+     * @param int           $threads
+     * @param string        $videoCodec
+     * @param string        $videoAudioCodec
+     * @param string        $videoAudioLanguage
+     * @param string        $videoContainer
      */
-    public function __construct($threads, $videoCodec, $videoAudioCodec, $videoAudioLanguage, $videoContainer)
+    public function __construct($streamService, $threads, $videoCodec, $videoAudioCodec, $videoAudioLanguage, $videoContainer)
     {
+        $this->streamService = $streamService;
+
         $this->threads = $threads;
 
         $this->videoCodec = $videoCodec;
@@ -101,73 +109,14 @@ class TranscodeService
         return $this->threads;
     }
 
-
     /**
-     * Get Streams
-     *
-     * @param string $filePath
-     *
-     * @return array
+     * @return StreamService
      */
-    public function getStreams($filePath)
+    public function getStreamService()
     {
-        $command = sprintf("ffprobe -v quiet -print_format json -show_streams '%s'", $filePath);
-        $result = shell_exec($command);
-
-        if (null === $result) {
-            throw new \LogicException(sprintf("No result for %s", $command));
-        }
-
-        $result = json_decode($result, true);
-
-        if (false === isset($result['streams']) || false === is_array($result['streams']) || 0 === count($result['streams'])) {
-            throw new \LogicException("Result not readable");
-        }
-
-        return $result['streams'];
+        return $this->streamService;
     }
 
-    /**
-     * Get Valid Streams
-     *
-     * @param array       $streams
-     * @param string|null $codec
-     * @param null|string $language
-     *
-     * @return array
-     */
-    public function getValidStreams($streams, $codec, $language = null)
-    {
-        $result = array();
-
-        foreach ($streams as $streamData) {
-            $streamLanguage = $this->getLanguageFromStream($streamData);
-
-            if (isset($streamData['codec_name'])) {
-                if (($streamData['codec_type'] === $codec || $streamData['codec_name'] === $codec) && (null === $language || $streamLanguage === $language || null === $streamLanguage)) {
-                    $result[] = $streamData;
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get Language from Stream
-     *
-     * @param array $stream
-     *
-     * @return null|string
-     */
-    private function getLanguageFromStream($stream)
-    {
-        if (false === isset($stream['tags']) || false === isset($stream['tags']['language'])) {
-            return null;
-        }
-
-        return $stream['tags']['language'];
-    }
 
     /**
      * Is Valid Container?
@@ -196,7 +145,7 @@ class TranscodeService
     public function transcodeVideo($filePath, $streams = null)
     {
         if (null === $streams) {
-            $streams = $this->getStreams($filePath);
+            $streams = $this->getStreamService()->get($filePath);
         }
 
         $command = array(
@@ -207,11 +156,11 @@ class TranscodeService
         /**
          * Video
          */
-        $videoCodecs = $this->getValidStreams($streams, $this->getVideoCodec());
+        $videoCodecs = $this->getStreamService()->getValid($streams, $this->getVideoCodec());
         if (0 === count($videoCodecs)) {
             $command[] = sprintf("-c:v %s", $this->getVideoCodecLibrary());
 
-            $videoCodec = $this->getValidStreams($streams, 'video');
+            $videoCodec = $this->getStreamService()->getValid($streams, 'video');
             $command[] = sprintf("-map 0:%s", $videoCodec[0]['index']);
         } else {
             $command[] = "-c:v copy";
@@ -221,12 +170,12 @@ class TranscodeService
         /**
          * Audio
          */
-        $audioCodecs = $this->getValidStreams($streams, $this->getVideoAudioCodec(), $this->getVideoAudioLanguage());
+        $audioCodecs = $this->getStreamService()->getValid($streams, $this->getVideoAudioCodec(), $this->getVideoAudioLanguage());
         $audioCodecsCount = count($audioCodecs);
         if (0 === $audioCodecsCount) {
             $command[] = sprintf("-c:a %s", $this->getVideoAudioCodec());
 
-            $audioCodec = $this->getValidStreams($streams, 'audio', $this->getVideoAudioLanguage());
+            $audioCodec = $this->getStreamService()->getValid($streams, 'audio', $this->getVideoAudioLanguage());
             $command[] = sprintf("-map 0:%s", $audioCodec[0]['index']);
         } else {
             $command[] = "-c:a copy";

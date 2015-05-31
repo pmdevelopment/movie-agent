@@ -14,6 +14,7 @@ use PM\ScanBundle\Entity\File;
 use PM\ScanBundle\Entity\Folder;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -30,8 +31,13 @@ class FilesCommand extends ContainerAwareCommand
     {
         $this
             ->setName('pm:scan:files')
-            ->setDescription('Scan Filesystem');
-
+            ->setDescription('Scan Filesystem')
+            ->addOption(
+                'reset',
+                null,
+                InputOption::VALUE_NONE,
+                'If set, existing files will removed from database'
+            );
     }
 
     /**
@@ -43,6 +49,10 @@ class FilesCommand extends ContainerAwareCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $start = microtime(true);
+
+        if (true === $input->getOption('reset')) {
+            $this->reset();
+        }
 
         $folders = $this->getDoctrine()->getRepository("PMScanBundle:Folder")->findBy(array("parent" => null));
 
@@ -152,15 +162,26 @@ class FilesCommand extends ContainerAwareCommand
                         $this->getDoctrine()->getManager()->persist($children);
 
                         $folder->getChildren()->add($children);
-                    } else {
-                        /**
-                         * Check if all files exist
-                         */
                     }
-
                 }
             }
         }
+    }
+
+    /**
+     * Reset
+     */
+    private function reset()
+    {
+        $folders = $this->getDoctrine()->getRepository("PMScanBundle:Folder")->findAll();
+
+        foreach ($folders as $folder) {
+            if (null !== $folder->getParent()) {
+                $this->getDoctrine()->getManager()->remove($folder);
+            }
+        }
+
+        $this->getDoctrine()->getManager()->flush();
     }
 
     /**

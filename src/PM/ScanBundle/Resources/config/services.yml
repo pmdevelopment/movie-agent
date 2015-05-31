@@ -2,8 +2,12 @@ services:
   pm_scan.services.transcode_service:
     class: PM\ScanBundle\Services\TranscodeService
     arguments:
+      - "@pm_scan.services.stream_service"
       - "%transcode_threads%"
       - "%transcode_video_codec%"
       - "%transcode_video_audio_codec%"
       - "%transcode_video_audio_language%"
       - "%transcode_video_container%"
+
+  pm_scan.services.stream_service:
+    class: PM\ScanBundle\Services\StreamService

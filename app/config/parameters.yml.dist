@@ -14,8 +14,10 @@ parameters:
     secret:            ThisTokenIsNotSoSecretChangeIt
 
     dir_media: /media/sjoder/3tb
+    dir_media_minimum_free_space: 2147483648
 
     transcode_threads: 2
+    transcode_backup_days: 14
 
     transcode_video_codec: "h264"
 
